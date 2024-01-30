@@ -1,10 +1,12 @@
-from typing import Any, Iterable, Optional
+from typing import Any, Iterable, Optional, Dict, List
 from urllib.parse import quote
 from urllib.parse import quote_plus as urlquote
 
 from sqlalchemy import text
-
+import logging
 from dbgpt.datasource.rdbms.base import RDBMSDatabase
+
+logger = logging.getLogger(__name__)
 
 
 class PostgreSQLDatabase(RDBMSDatabase):
@@ -23,15 +25,20 @@ class PostgreSQLDatabase(RDBMSDatabase):
         engine_args: Optional[dict] = None,
         **kwargs: Any,
     ) -> RDBMSDatabase:
+        print("POSTGRES GOOOO")
         db_url: str = (
             f"{cls.driver}://{quote(user)}:{urlquote(pwd)}@{host}:{str(port)}/{db_name}"
         )
-        return cls.from_uri(db_url, engine_args, **kwargs)
+        c = cls.from_uri(db_url, engine_args, **kwargs)
+        c._sync_tables_from_db()
+        return c
 
     def _sync_tables_from_db(self) -> Iterable[str]:
+        print("SYNC TABLES FROM DB")
+        # text("SELECT tablename FROM pg_catalog.pg_tables WHERE schemaname != 'pg_catalog' AND schemaname != 'information_schema'")
         table_results = self.session.execute(
             text(
-                "SELECT tablename FROM pg_catalog.pg_tables WHERE schemaname != 'pg_catalog' AND schemaname != 'information_schema'"
+                "SELECT schemaname || '.' || tablename AS full_table_name FROM pg_catalog.pg_tables WHERE schemaname != 'pg_catalog' AND schemaname != 'information_schema'"
             )
         )
         view_results = self.session.execute(
@@ -41,7 +48,8 @@ class PostgreSQLDatabase(RDBMSDatabase):
         )
         table_results = set(row[0] for row in table_results)
         view_results = set(row[0] for row in view_results)
-        self._all_tables = table_results.union(view_results)
+        # self._all_tables = table_results.union(view_results)
+        self._all_tables = table_results
         self._metadata.reflect(bind=self._engine)
         return self._all_tables
 
@@ -160,11 +168,36 @@ class PostgreSQLDatabase(RDBMSDatabase):
     def get_current_db_name(self) -> str:
         return self.session.execute(text("SELECT current_database()")).scalar()
 
+    def get_columns(self, table_name: str) -> List[Dict]:
+        """Get columns but check for schema in name first"""
+        logger.info("getting columns from postgres")
+        schema, table = table_name.split(".")
+        if table is not None:
+            return self._inspector.get_columns(table, schema=schema)
+        return super().get_columns(table_name)
+
     def table_simple_info(self):
+        # SELECT table_name, string_agg(column_name, ', ') AS schema_info
+        # FROM (
+        #     SELECT c.relname AS table_name, a.attname AS column_name
+        #     FROM pg_catalog.pg_class c
+        #     JOIN pg_catalog.pg_namespace n ON n.oid = c.relnamespace
+        #     JOIN pg_catalog.pg_attribute a ON a.attrelid = c.oid
+        #     WHERE c.relkind = 'r'
+        #     AND a.attnum > 0
+        #     AND NOT a.attisdropped
+        #     AND n.nspname NOT LIKE 'pg_%'
+        #     AND n.nspname != 'information_schema'
+        #     ORDER BY c.relname, a.attnum
+        # ) sub
+        # GROUP BY table_name;
         _sql = f"""
-            SELECT table_name, string_agg(column_name, ', ') AS schema_info
+            SELECT sub.schema_name || '.' || sub.table_name AS full_table_name, 
+                string_agg(sub.column_name, ', ') AS schema_info
             FROM (
-                SELECT c.relname AS table_name, a.attname AS column_name
+                SELECT n.nspname AS schema_name, 
+                    c.relname AS table_name, 
+                    a.attname AS column_name
                 FROM pg_catalog.pg_class c
                 JOIN pg_catalog.pg_namespace n ON n.oid = c.relnamespace
                 JOIN pg_catalog.pg_attribute a ON a.attrelid = c.oid
@@ -173,9 +206,9 @@ class PostgreSQLDatabase(RDBMSDatabase):
                 AND NOT a.attisdropped
                 AND n.nspname NOT LIKE 'pg_%'
                 AND n.nspname != 'information_schema'
-                ORDER BY c.relname, a.attnum
+                ORDER BY n.nspname, c.relname, a.attnum
             ) sub
-            GROUP BY table_name;
+            GROUP BY sub.schema_name, sub.table_name;
             """
         cursor = self.session.execute(text(_sql))
         results = cursor.fetchall()

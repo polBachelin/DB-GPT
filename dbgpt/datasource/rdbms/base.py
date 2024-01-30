@@ -382,9 +382,10 @@ class RDBMSDatabase(BaseConnect):
         # Pandas has too much dependence and the import time is too long
         # TODO: Remove the dependency on pandas
         result_lst = self.run(command, fetch)
-        colunms = result_lst[0]
-        values = result_lst[1:]
-        return pd.DataFrame(values, columns=colunms)
+        if len(result_lst) > 1:
+            colunms = result_lst[0]
+            values = result_lst[1:]
+            return pd.DataFrame(values, columns=colunms)
 
     def run_no_throw(self, command: str, fetch: str = "all") -> List:
         """Execute a SQL command and return a string representing the results.
