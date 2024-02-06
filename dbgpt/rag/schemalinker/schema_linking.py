@@ -21,6 +21,10 @@ INSTRUCTION = (
 )
 INPUT_PROMPT = "\n###New Input:\n{}\n###New Response:"
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 class SchemaLinking(BaseSchemaLinker):
     """SchemaLinking by LLM"""
@@ -32,7 +36,7 @@ class SchemaLinking(BaseSchemaLinker):
         llm: Optional[LLMClient] = None,
         model_name: Optional[str] = None,
         vector_store_connector: Optional[VectorStoreConnector] = None,
-        **kwargs
+        **kwargs,
     ):
         """
         Args:
@@ -49,11 +53,12 @@ class SchemaLinking(BaseSchemaLinker):
     def _schema_linking(self, query: str) -> List:
         """get all db schema info"""
         table_summaries = _parse_db_summary(self._connection)
+        print(f"Table summaries {table_summaries}")
         chunks = [Chunk(content=table_summary) for table_summary in table_summaries]
         chunks_content = [chunk.content for chunk in chunks]
         return chunks_content
 
-    def _schema_linking_with_vector_db(self, query: str) -> List:
+    async def _schema_linking_with_vector_db(self, query: str) -> List:
         queries = [query]
         candidates = [
             self._vector_store_connector.similar_search(query, self._top_k)

@@ -17,6 +17,9 @@ from dbgpt.storage.vector_store.chroma_store import ChromaVectorConfig
 from dbgpt.storage.vector_store.connector import VectorStoreConnector
 from dbgpt.util.chat_util import run_async_tasks
 import logging
+from dbgpt.storage.vector_store.base import VectorStoreConfig
+from dbgpt.serve.rag.assembler.db_schema import DBSchemaAssembler
+from dbgpt.rag.embedding.embedding_factory import DefaultEmbeddingFactory
 
 logger = logging.getLogger(__name__)
 
@@ -66,67 +69,6 @@ def _create_vector_connector():
             default_model_name=os.path.join(MODEL_PATH, "text2vec-large-chinese"),
         ).create(),
     )
-
-
-def _create_temporary_connection():
-    """Create a temporary database connection for testing."""
-    connect = SQLiteTempConnect.create_temporary_db()
-    connect.create_temp_tables(
-        {
-            "user": {
-                "columns": {
-                    "id": "INTEGER PRIMARY KEY",
-                    "name": "TEXT",
-                    "age": "INTEGER",
-                },
-                "data": [
-                    (1, "Tom", 8),
-                    (2, "Jerry", 16),
-                    (3, "Jack", 18),
-                    (4, "Alice", 20),
-                    (5, "Bob", 22),
-                ],
-            }
-        }
-    )
-    connect.create_temp_tables(
-        {
-            "job": {
-                "columns": {
-                    "id": "INTEGER PRIMARY KEY",
-                    "name": "TEXT",
-                    "age": "INTEGER",
-                },
-                "data": [
-                    (1, "student", 8),
-                    (2, "student", 16),
-                    (3, "student", 18),
-                    (4, "teacher", 20),
-                    (5, "teacher", 22),
-                ],
-            }
-        }
-    )
-    connect.create_temp_tables(
-        {
-            "student": {
-                "columns": {
-                    "id": "INTEGER PRIMARY KEY",
-                    "name": "TEXT",
-                    "age": "INTEGER",
-                    "info": "TEXT",
-                },
-                "data": [
-                    (1, "Andy", 8, "good"),
-                    (2, "Jerry", 16, "bad"),
-                    (3, "Wendy", 18, "good"),
-                    (4, "Spider", 20, "bad"),
-                    (5, "David", 22, "bad"),
-                ],
-            }
-        }
-    )
-    return connect
 
 
 def _prompt_join_fn(query: str, chunks: str) -> str:
@@ -233,9 +175,9 @@ class ChartDrawOperator(MapOperator[Any, Any]):
         return str(df)
 
 
-with DAG("simple_nl_schema_sql_chart_example") as dag:
+with DAG("hard_nl_schema_sql_chart_example") as dag:
     trigger = HttpTrigger(
-        "/examples/rag/schema_linking", methods="POST", request_body=TriggerReqBody
+        "/examples/rag/to_chart", methods="POST", request_body=TriggerReqBody
     )
     request_handle_task = RequestHandleOperator()
     query_operator = MapOperator(lambda request: request["query"])
@@ -246,13 +188,26 @@ with DAG("simple_nl_schema_sql_chart_example") as dag:
     )
     print(f"connect: {connect}")
     print(f" table names: {connect.get_table_names()}")
+    embedding_factory = DefaultEmbeddingFactory()
+    embedding_fn = embedding_factory.create(
+        model_name="/home/polo/github/DB-GPT/models/text2vec-large-chinese"
+    )
+    vector_name = "Adventureworks_profile"
+    config = ChromaVectorConfig(name=vector_name, embedding_fn=embedding_fn)
+    vector_store_connector = VectorStoreConnector(
+        vector_store_type="Chroma",
+        vector_store_config=config,
+    )
     retriever_task = SchemaLinkingOperator(
-        connection=connect, llm=llm, model_name=model_name
+        connection=connect,
+        llm=llm,
+        model_name=model_name,
+        vector_store_connector=vector_store_connector,
     )
     prompt_join_operator = JoinOperator(combine_function=_prompt_join_fn)
     sql_gen_operator = SqlGenOperator(llm=llm, model_name=model_name)
-    sql_exec_operator = SqlExecOperator(connection=_create_temporary_connection())
-    draw_chart_operator = ChartDrawOperator(connection=_create_temporary_connection())
+    sql_exec_operator = SqlExecOperator(connection=connect)
+    draw_chart_operator = ChartDrawOperator(connection=connect)
     trigger >> request_handle_task >> query_operator >> prompt_join_operator
     (
         trigger

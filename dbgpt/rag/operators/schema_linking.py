@@ -5,6 +5,9 @@ from dbgpt.core.awel import MapOperator
 from dbgpt.datasource.rdbms.base import RDBMSDatabase
 from dbgpt.rag.schemalinker.schema_linking import SchemaLinking
 from dbgpt.storage.vector_store.connector import VectorStoreConnector
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class SchemaLinkingOperator(MapOperator[Any, Any]):
@@ -41,4 +44,5 @@ class SchemaLinkingOperator(MapOperator[Any, Any]):
         Return:
             str: schema info
         """
+        logging.info("MAPPING SCHEMA")
         return str(await self._schema_linking.schema_linking_with_llm(query))

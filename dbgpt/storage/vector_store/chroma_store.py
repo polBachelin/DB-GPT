@@ -17,8 +17,8 @@ class ChromaVectorConfig(VectorStoreConfig):
     """Chroma vector store config."""
 
     persist_path: str = Field(
-        default=os.getenv("CHROMA_PERSIST_PATH", None),
-        description="The password of vector store, if not set, will use the default password.",
+        default=os.getenv("CHROMA_PERSIST_PATH", "/home/polo/github/DB-GPT/pilot/data"),
+        description="The persist path of vector store, if not set, will use the none.",
     )
     collection_metadata: dict = Field(
         default=None,

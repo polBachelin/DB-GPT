@@ -133,6 +133,7 @@ def setup_dev_environment(
 
     app = FastAPI()
     system_app = SystemApp(app)
+    logger.info("STARTINF DAG DEV ENV")
     DAGVar.set_current_system_app(system_app)
     trigger_manager = DefaultTriggerManager()
     system_app.register_instance(trigger_manager)

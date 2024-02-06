@@ -43,7 +43,7 @@ class DBSummaryClient:
 
         from dbgpt.storage.vector_store.base import VectorStoreConfig
         from dbgpt.storage.vector_store.connector import VectorStoreConnector
-
+        logger.info(f"Get db summary {dbname}")
         vector_store_config = VectorStoreConfig(name=dbname + "_profile")
         vector_connector = VectorStoreConnector.from_default(
             CFG.VECTOR_STORE_TYPE,
@@ -56,6 +56,7 @@ class DBSummaryClient:
             top_k=topk, vector_store_connector=vector_connector
         )
         table_docs = retriever.retrieve(query)
+        logger.info(f"table_docs == {table_docs}")
         ans = [d.content for d in table_docs]
         return ans
 
@@ -65,6 +66,7 @@ class DBSummaryClient:
         dbs = db_mange.get_db_list()
         for item in dbs:
             try:
+                logger.info(f'Db Name {item["db_name"]} and db type {item["db_type"]}')
                 self.db_summary_embedding(item["db_name"], item["db_type"])
             except Exception as e:
                 message = traceback.format_exc()

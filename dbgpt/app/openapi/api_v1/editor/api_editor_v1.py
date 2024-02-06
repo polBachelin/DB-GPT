@@ -21,6 +21,7 @@ from dbgpt.app.openapi.editor_view_model import (
     ChatSqlEditContext,
     DbTable,
 )
+from pydantic import BaseModel
 from dbgpt.app.scene import ChatFactory
 from dbgpt.app.scene.chat_dashboard.data_loader import DashboardDataLoader
 from dbgpt.core.interface.message import OnceConversation
@@ -158,14 +159,20 @@ async def get_editor_chart_info(
     return editor_service.get_editor_chart_info(conv_uid, chart_title, CFG)
 
 
+class RunBody(BaseModel):
+    db_name: str
+    sql: str
+    chart_type: str
+
+
 @router.post("/v1/editor/chart/run", response_model=Result[ChartRunData])
 async def editor_chart_run(run_param: dict = Body()):
     logger.info(f"editor_chart_run:{run_param}")
-    db_name = run_param["db_name"]
-    sql = run_param["sql"]
-    chart_type = run_param["chart_type"]
+    db_name = "Adventureworks"  # "run_param["db_name"]"
+    sql = "SELECT pc.name AS product_category, COUNT(*) AS sales_count FROM sales.salesorderdetail sod INNER JOIN production.product p ON sod.productid = p.productid INNER JOIN production.productsubcategory psc ON p.productsubcategoryid = psc.productsubcategoryid INNER JOIN production.productcategory pc ON psc.productcategoryid = pc.productcategoryid GROUP BY pc.name"  # run_param["sql"]
+    chart_type = "BarChart"  # run_param["chart_type"]
     if not db_name and not sql:
-        return Result.failed("SQL run param error！")
+        return Result.failed("SQL run param error")
     try:
         dashboard_data_loader: DashboardDataLoader = DashboardDataLoader()
         db_conn = CFG.LOCAL_DB_MANAGE.get_connect(db_name)

@@ -1,8 +1,10 @@
 from typing import List
-
+import logging
 from dbgpt._private.config import Config
 from dbgpt.datasource.rdbms.base import RDBMSDatabase
 from dbgpt.rag.summary.db_summary import DBSummary
+
+logger = logging.getLogger(__name__)
 
 CFG = Config()
 
@@ -29,7 +31,10 @@ class RdbmsSummary(DBSummary):
             charset=self.db.get_charset(),
             collation=self.db.get_collation(),
         )
+
+        logger.info(f"table names functions {self.db.get_table_names}")
         tables = self.db.get_table_names()
+
         self.table_info_summaries = [
             self.get_table_summary(table_name) for table_name in tables
         ]
@@ -55,7 +60,9 @@ def _parse_db_summary(
         conn (RDBMSDatabase): database connection
         summary_template (str): summary template
     """
+    logger.info("### GETTING TABLE NAMES FORM CONNECTION")
     tables = conn.get_table_names()
+    logger.info(f"tables: {tables}")
     table_info_summaries = [
         _parse_table_summary(conn, summary_template, table_name)
         for table_name in tables
@@ -78,6 +85,7 @@ def _parse_table_summary(
     """
     columns = []
     for column in conn.get_columns(table_name):
+        logger.info(f"COLUMN RETURNED: {column}")
         if column.get("comment"):
             columns.append(f"{column['name']} ({column.get('comment')})")
         else:

@@ -6,7 +6,7 @@ ARG BASE_IMAGE
 RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y git python3 pip wget sqlite3 tzdata \
     && apt-get clean
 
-ARG BUILD_LOCAL_CODE="false"
+ARG BUILD_LOCAL_CODE="true"
 ARG LANGUAGE="en"
 ARG PIP_INDEX_URL="https://pypi.org/simple"
 ENV PIP_INDEX_URL=$PIP_INDEX_URL
@@ -33,16 +33,16 @@ RUN pip3 install --upgrade pip -i $PIP_INDEX_URL \
     && pip3 install -i $PIP_INDEX_URL ".[openai]"
 
 RUN (if [ "${LANGUAGE}" = "zh" ]; \
-        # language is zh, download zh_core_web_sm from github
-        then wget https://github.com/explosion/spacy-models/releases/download/zh_core_web_sm-3.5.0/zh_core_web_sm-3.5.0-py3-none-any.whl -O /tmp/zh_core_web_sm-3.5.0-py3-none-any.whl \
-        && pip3 install /tmp/zh_core_web_sm-3.5.0-py3-none-any.whl -i $PIP_INDEX_URL \
-        && rm /tmp/zh_core_web_sm-3.5.0-py3-none-any.whl; \
-        # not zh, download directly
-        else python3 -m spacy download zh_core_web_sm; \
+    # language is zh, download zh_core_web_sm from github
+    then wget https://github.com/explosion/spacy-models/releases/download/zh_core_web_sm-3.5.0/zh_core_web_sm-3.5.0-py3-none-any.whl -O /tmp/zh_core_web_sm-3.5.0-py3-none-any.whl \
+    && pip3 install /tmp/zh_core_web_sm-3.5.0-py3-none-any.whl -i $PIP_INDEX_URL \
+    && rm /tmp/zh_core_web_sm-3.5.0-py3-none-any.whl; \
+    # not zh, download directly
+    else python3 -m spacy download zh_core_web_sm; \
     fi;) \
     && rm -rf `pip3 cache dir`
 
-ARG BUILD_LOCAL_CODE="false"
+ARG BUILD_LOCAL_CODE="true"
 # COPY the rest of the app
 COPY . /app
 

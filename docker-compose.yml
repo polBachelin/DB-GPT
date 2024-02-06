@@ -18,23 +18,27 @@ services:
     networks:
       - dbgptnet
   webserver:
-    image: eosphorosai/dbgpt:latest
-    command: python3 dbgpt/app/dbgpt_server.py
+    image: ./docker/base
+    command: bash start.sh
     environment:
       - LOCAL_DB_HOST=db
       - LOCAL_DB_PASSWORD=aa123456
       - ALLOWLISTED_PLUGINS=db_dashboard
-      - LLM_MODEL=vicuna-13b-v1.5
+      - LLM_MODEL=chatgpt_proxyllm
+      - PROXY_API_KEY=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
+      - PROXY_SERVER_URL=https://api.openai.com/v1/chat/completions
+      - PYTHONUNBUFFERED=1
     depends_on:
-      - db
+      - db  
     volumes:
+      - ./start.sh:/app/start.sh
       - /data:/data
       # Please modify it to your own model directory
-      - /data/models:/app/models
+      - ./models/text2vec-large-chinese:/app/models/text2vec-large-chinese
       - dbgpt-data:/app/pilot/data
       - dbgpt-message:/app/pilot/message
     env_file:
-      - .env.template
+      - .env
     ports:
       - 5000:5000/tcp
     # webserver may be failed, it must wait all sqls in /docker-entrypoint-initdb.d execute finish.
@@ -42,12 +46,12 @@ services:
     networks:
       - dbgptnet
     ipc: host
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              capabilities: [gpu]
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           capabilities: [gpu]
 volumes:
   dbgpt-myql-db:
   dbgpt-data:

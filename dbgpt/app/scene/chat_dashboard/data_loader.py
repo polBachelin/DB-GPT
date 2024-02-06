@@ -18,7 +18,6 @@ class DashboardDataLoader:
         return self.get_chart_values_by_data(field_names, datas, chart_sql)
 
     def get_chart_values_by_data(self, field_names, datas, chart_sql: str):
-        logger.info(f"get_chart_values_by_conn:{chart_sql}")
         try:
             values: List[ValueItem] = []
             data_map = {}
@@ -38,24 +37,20 @@ class DashboardDataLoader:
                             )
                         }
                     )
-
             for field_name in field_names[1:]:
-                if not field_map[field_name]:
-                    logger.info("More than 2 non-numeric column:" + field_name)
-                else:
-                    for data in datas:
-                        value_item = ValueItem(
-                            name=data[0],
-                            type=field_name,
-                            value=data[field_names.index(field_name)],
-                        )
-                        values.append(value_item)
+                for data in datas:
+                    value_item = ValueItem(
+                        name=data[0],
+                        type=field_name,
+                        value=data[field_names.index(field_name)],
+                    )
+                    values.append(value_item)
+            logger.info(f"GET CHAT BY VALUES {field_names} -- {values}")
             return field_names, values
         except Exception as e:
-            logger.debug("Prepare Chart Data Failed!" + str(e))
+            logger.info("Prepare Chart Data Failed!" + str(e))
             raise ValueError("Prepare Chart Data Failed!")
 
     def get_chart_values_by_db(self, db_name: str, chart_sql: str):
-        logger.info(f"get_chart_values_by_db:{db_name},{chart_sql}")
         db_conn = CFG.LOCAL_DB_MANAGE.get_connect(db_name)
         return self.get_chart_values_by_conn(db_conn, chart_sql)

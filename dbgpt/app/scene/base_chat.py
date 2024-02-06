@@ -214,7 +214,9 @@ class BaseChat(ABC):
 
     async def _build_model_request(self) -> ModelRequest:
         input_values = await self.generate_input_values()
-        # Load history
+        logger.info(f"input function {self.generate_input_values}")
+        logger.info(f"### input values {input_values}")
+        # Load history``
         self.history_messages = self.current_message.get_history_message()
         self.current_message.start_new_round()
         self.current_message.add_user_message(self.current_user_input)

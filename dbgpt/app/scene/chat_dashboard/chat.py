@@ -10,10 +10,12 @@ from dbgpt.app.scene.chat_dashboard.data_preparation.report_schma import (
     ChartData,
     ReportData,
 )
+import logging
 from dbgpt.util.executor_utils import blocking_func_to_async
 from dbgpt.util.tracer import trace
 
 CFG = Config()
+logger = logging.getLogger(__name__)
 
 
 class ChatDashboard(BaseChat):
@@ -68,7 +70,7 @@ class ChatDashboard(BaseChat):
                 self.current_user_input,
                 self.top_k,
             )
-            print("dashboard vector find tables:{}", table_infos)
+            logger.info(f"dashboard vector find tables:{table_infos}")
         except Exception as e:
             print("db summary find error!" + str(e))
 
@@ -102,9 +104,11 @@ class ChatDashboard(BaseChat):
                         values=values,
                     )
                 )
+                logger.info(f"Do action chart_datas {chart_datas}")
             except Exception as e:
                 # TODO 修复流程
                 print(str(e))
+        
         return ReportData(
             conv_uid=self.chat_session_id,
             template_name=self.report_name,
