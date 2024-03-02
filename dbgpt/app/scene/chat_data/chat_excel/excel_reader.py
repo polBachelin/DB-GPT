@@ -273,12 +273,15 @@ class ExcelReader:
             self.df[column_name] = self.df[column_name].astype(str)
             self.columns_map.update({column_name: excel_colunm_format(column_name)})
             try:
-                self.df[column_name] = pd.to_datetime(self.df[column_name]).dt.strftime(
+                self.df[column_name] = pd.to_datetime(self.df[column_name], format="%Y-%m-%d").dt.strftime(
                     "%Y-%m-%d"
                 )
             except ValueError:
                 try:
-                    self.df[column_name] = pd.to_numeric(self.df[column_name])
+                    numeric_column = pd.to_numeric(
+                        self.df[column_name], errors="coerce")
+                    if not numeric_column.isnull().all():
+                        self.df[column_name] = numeric_column
                 except ValueError:
                     try:
                         self.df[column_name] = self.df[column_name].astype(str)
