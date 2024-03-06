@@ -290,8 +290,7 @@ class ExcelReader:
             try:
                 self.df[column_name] = pd.to_datetime(
                     self.df[column_name], format="%Y-%m-%d")
-                print(f"Was able to convert to date {self.df[column_name]}")
-            except ValueError as e:
+            except ValueError:
                 try:
                     numeric_column = pd.to_numeric(
                         self.df[column_name], errors="coerce")
