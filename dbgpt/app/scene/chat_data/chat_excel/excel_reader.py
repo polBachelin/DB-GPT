@@ -5,6 +5,7 @@ import chardet
 import duckdb
 import numpy as np
 import pandas as pd
+from dateutil.parser import parse
 import sqlparse
 from pyparsing import (
     CaselessKeyword,
@@ -226,6 +227,20 @@ def is_chinese(text):
     return False
 
 
+def is_date(string, fuzzy=False):
+    """
+    Return whether the string can be interpreted as a date.
+    :param string: str, the string to check
+    :param fuzzy: bool, ignore unknown tokens in string if True
+    """
+    try:
+        print(string)
+        parse(string, fuzzy=fuzzy)
+        return True
+    except ValueError:
+        return False
+
+
 class ExcelReader:
     def __init__(self, file_path):
         file_name = os.path.basename(file_path)
@@ -273,12 +288,15 @@ class ExcelReader:
             self.df[column_name] = self.df[column_name].astype(str)
             self.columns_map.update({column_name: excel_colunm_format(column_name)})
             try:
-                self.df[column_name] = pd.to_datetime(self.df[column_name]).dt.strftime(
-                    "%Y-%m-%d"
-                )
-            except ValueError:
+                self.df[column_name] = pd.to_datetime(
+                    self.df[column_name], format="%Y-%m-%d")
+                print(f"Was able to convert to date {self.df[column_name]}")
+            except ValueError as e:
                 try:
-                    self.df[column_name] = pd.to_numeric(self.df[column_name])
+                    numeric_column = pd.to_numeric(
+                        self.df[column_name], errors="coerce")
+                    if not numeric_column.isnull().all():
+                        self.df[column_name] = numeric_column
                 except ValueError:
                     try:
                         self.df[column_name] = self.df[column_name].astype(str)
