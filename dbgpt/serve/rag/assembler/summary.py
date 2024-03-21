@@ -1,8 +1,7 @@
 import os
 from typing import Any, List, Optional
 
-from dbgpt.core import LLMClient
-from dbgpt.rag.chunk import Chunk
+from dbgpt.core import Chunk, LLMClient
 from dbgpt.rag.chunk_manager import ChunkParameters
 from dbgpt.rag.extractor.base import Extractor
 from dbgpt.rag.knowledge.base import Knowledge
@@ -32,7 +31,7 @@ class SummaryAssembler(BaseAssembler):
 
     def __init__(
         self,
-        knowledge: Knowledge = None,
+        knowledge: Knowledge,
         chunk_parameters: Optional[ChunkParameters] = None,
         model_name: Optional[str] = None,
         llm_client: Optional[LLMClient] = None,
@@ -69,7 +68,7 @@ class SummaryAssembler(BaseAssembler):
     @classmethod
     def load_from_knowledge(
         cls,
-        knowledge: Knowledge = None,
+        knowledge: Knowledge,
         chunk_parameters: Optional[ChunkParameters] = None,
         model_name: Optional[str] = None,
         llm_client: Optional[LLMClient] = None,
@@ -104,6 +103,7 @@ class SummaryAssembler(BaseAssembler):
 
     def persist(self) -> List[str]:
         """Persist chunks into store."""
+        raise NotImplementedError
 
     def _extract_info(self, chunks) -> List[Chunk]:
         """Extract info from chunks."""
