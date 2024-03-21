@@ -1,12 +1,12 @@
 from abc import ABC, abstractmethod
 from typing import Any, List, Optional
 
-from dbgpt.rag.chunk import Chunk
+from dbgpt.core import Chunk
 from dbgpt.rag.chunk_manager import ChunkManager, ChunkParameters
 from dbgpt.rag.extractor.base import Extractor
 from dbgpt.rag.knowledge.base import Knowledge
 from dbgpt.rag.retriever.base import BaseRetriever
-from dbgpt.util.tracer import root_tracer, trace
+from dbgpt.util.tracer import root_tracer
 
 
 class BaseAssembler(ABC):
@@ -44,8 +44,10 @@ class BaseAssembler(ABC):
         with root_tracer.start_span("BaseAssembler.load_knowledge", metadata=metadata):
             self.load_knowledge(self._knowledge)
 
-    def load_knowledge(self, knowledge) -> None:
+    def load_knowledge(self, knowledge: Optional[Knowledge] = None) -> None:
         """Load knowledge Pipeline."""
+        if not knowledge:
+            raise ValueError("knowledge must be provided.")
         with root_tracer.start_span("BaseAssembler.knowledge.load"):
             documents = knowledge.load()
         with root_tracer.start_span("BaseAssembler.chunk_manager.split"):
@@ -56,8 +58,12 @@ class BaseAssembler(ABC):
         """Return a retriever."""
 
     @abstractmethod
-    def persist(self, chunks: List[Chunk]) -> None:
-        """Persist chunks."""
+    def persist(self) -> List[str]:
+        """Persist chunks.
+
+        Returns:
+            List[str]: List of persisted chunk ids.
+        """
 
     def get_chunks(self) -> List[Chunk]:
         """Return chunks."""

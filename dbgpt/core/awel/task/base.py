@@ -3,11 +3,13 @@ from abc import ABC, abstractmethod
 from enum import Enum
 from typing import (
     Any,
+    AsyncIterable,
     AsyncIterator,
     Awaitable,
     Callable,
     Dict,
     Generic,
+    Iterable,
     List,
     Optional,
     TypeVar,
@@ -30,6 +32,19 @@ class _EMPTY_DATA_TYPE:
 
     def __str__(self):
         return f"EmptyData({self.name})"
+
+    def is_same(self, obj: Any) -> bool:
+        """Check if the object is the same as the current object.
+
+        Args:
+            obj (Any): The object to compare with.
+
+        Returns:
+            bool: True if the object is the same as the current object, False otherwise.
+        """
+        if not isinstance(obj, _EMPTY_DATA_TYPE):
+            return False
+        return self == obj
 
 
 EMPTY_DATA = _EMPTY_DATA_TYPE("EMPTY_DATA")
@@ -421,3 +436,40 @@ class InputSource(ABC, Generic[T]):
         Returns:
             TaskOutput[T]: The output object read from current source
         """
+
+    @classmethod
+    def from_data(cls, data: T) -> "InputSource[T]":
+        """Create an InputSource from data.
+
+        Args:
+            data (T): The data to create the InputSource from.
+
+        Returns:
+            InputSource[T]: The InputSource created from the data.
+        """
+        from .task_impl import SimpleInputSource
+
+        return SimpleInputSource(data, streaming=False)
+
+    @classmethod
+    def from_iterable(
+        cls, iterable: Union[AsyncIterable[T], Iterable[T]]
+    ) -> "InputSource[T]":
+        """Create an InputSource from an iterable.
+
+        Args:
+            iterable (List[T]): The iterable to create the InputSource from.
+
+        Returns:
+            InputSource[T]: The InputSource created from the iterable.
+        """
+        from .task_impl import SimpleInputSource
+
+        return SimpleInputSource(iterable, streaming=True)
+
+    @classmethod
+    def from_callable(cls) -> "InputSource[T]":
+        """Create an InputSource from a callable."""
+        from .task_impl import SimpleCallDataInputSource
+
+        return SimpleCallDataInputSource()

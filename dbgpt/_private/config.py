@@ -11,6 +11,7 @@ if TYPE_CHECKING:
     from auto_gpt_plugin_template import AutoGPTPluginTemplate
 
     from dbgpt.component import SystemApp
+    from dbgpt.datasource.manages import ConnectorManager
 
 
 class Config(metaclass=Singleton):
@@ -106,6 +107,17 @@ class Config(metaclass=Singleton):
                 "GEMINI_MODEL_VERSION", "gemini-pro"
             )
 
+        # Yi proxy
+        self.yi_proxy_api_key = os.getenv("YI_API_KEY")
+        if self.yi_proxy_api_key:
+            os.environ["yi_proxyllm_proxy_api_key"] = self.yi_proxy_api_key
+            os.environ["yi_proxyllm_proxyllm_backend"] = os.getenv(
+                "YI_MODEL_VERSION", "yi-34b-chat-0205"
+            )
+            os.environ["yi_proxyllm_proxy_api_base"] = os.getenv(
+                "YI_API_BASE", "https://api.lingyiwanwu.com/v1"
+            )
+
         self.proxy_server_url = os.getenv("PROXY_SERVER_URL")
 
         self.elevenlabs_api_key = os.getenv("ELEVENLABS_API_KEY")
@@ -173,8 +185,6 @@ class Config(metaclass=Singleton):
         self.NATIVE_SQL_CAN_RUN_WRITE = (
             os.getenv("NATIVE_SQL_CAN_RUN_WRITE", "True").lower() == "true"
         )
-
-        self.LOCAL_DB_MANAGE = None
 
         ###dbgpt meta info database connection configuration
         self.LOCAL_DB_HOST = os.getenv("LOCAL_DB_HOST")
@@ -276,3 +286,11 @@ class Config(metaclass=Singleton):
         self.MODEL_CACHE_STORAGE_DISK_DIR: Optional[str] = os.getenv(
             "MODEL_CACHE_STORAGE_DISK_DIR"
         )
+
+    @property
+    def local_db_manager(self) -> "ConnectorManager":
+        from dbgpt.datasource.manages import ConnectorManager
+
+        if not self.SYSTEM_APP:
+            raise ValueError("SYSTEM_APP is not set")
+        return ConnectorManager.get_instance(self.SYSTEM_APP)
